@@ -1,21 +1,38 @@
 {% extends "base.html" %}
 {% block content %}
     {% if articles %}
+    <div class="row">
         {% for article in (articles_page.object_list if articles_page else articles) %}
-            <article>
-                <h2><a href="{{ SITEURL }}/{{ article.url }}">{{ article.title }}</a></h2>
-                {% if DISPLAY_ARTICLE_INFO_ON_INDEX %}
-                    <div class="well well-sm">
-                        {% include "includes/article_info.html" %}
+        <div class="col-md-12 col-lg-6">
+            <article class="panel panel-primary">
+                <div class="panel-heading">
+                    <div class="row">
+                        <div class="col-lg-8 col-md-9 col-sm-8">
+                            <a href="{{ SITEURL }}/{{ article.url }}" class="btn btn-primary btn-lg"><h2>{{ article.title }}
+                            </h2></a>
+                        </div>
+                        <div class="col-lg-4 col-md-3 col-sm-4">
+                            {% import 'includes/translations.html' as translations with context %}
+                            {{ translations.translations_for(article) }}
+                        </div>
                     </div>
-                {% endif %}
-                <div class="summary">{{ article.summary }}
+
+                    {% if DISPLAY_ARTICLE_INFO_ON_INDEX %}
+                        <span>
+                            {% include "includes/article_info.html" %}
+                        </span>
+                    {% endif %}
+                </div>
+                <div class="panel-body">
+                    <div class="summary">{{ article.summary }}
+                    </div>
+                    
                     {% include 'includes/comment_count.html' %}
-                    <a class="btn btn-default btn-xs" href="{{ SITEURL }}/{{ article.url }}">more ...</a>
                 </div>
             </article>
-            <hr/>
+        </div>
         {% endfor %}
+    </div>
     {% endif %}
 
     {% include 'includes/pagination.html' %}

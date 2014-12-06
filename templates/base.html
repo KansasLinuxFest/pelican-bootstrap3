@@ -4,7 +4,9 @@
       xmlns:og="http://ogp.me/ns#"
       xmlns:fb="https://www.facebook.com/2008/fbml"{% endif %}>
 <head>
-    <title>{% block title %}{{ SITENAME }}{% endblock %}</title>
+    <title>{% macro title() -%}
+    {% block title %}{{ SITENAME }}{% endblock %}
+    {%- endmacro %}{{title()}}</title>
     <!-- Using the latest rendering mode for IE -->
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta charset="utf-8">
@@ -57,11 +59,12 @@
     {% include 'includes/twitter_cards.html' %}
 
     <!-- Bootstrap -->
-    {% if BOOTSTRAP_THEME %}
-        <link rel="stylesheet" href="{{ SITEURL }}/theme/css/bootstrap.{{ BOOTSTRAP_THEME }}.min.css" type="text/css"/>
+    {% if USE_LESS %}
+        <link href="{{ SITEURL }}/theme/bootstrap/bootstrap.less" rel="stylesheet/less" type="text/css">
     {% else %}
-        <link rel="stylesheet" href="{{ SITEURL }}/theme/css/bootstrap.min.css" type="text/css"/>
+        <link href="{{ SITEURL }}/theme/css/bootstrap.min.css" rel="stylesheet">
     {% endif %}
+    
     <link href="{{ SITEURL }}/theme/css/font-awesome.min.css" rel="stylesheet">
 
     <link href="{{ SITEURL }}/theme/css/pygments/{{ PYGMENTS_STYLE|default('native') }}.css" rel="stylesheet">
@@ -88,8 +91,16 @@
               title="{{ SITENAME }} RSS Feed"/>
     {% endif %}
 
+    {% if USE_LESS %}
+        <link href="{{ SITEURL }}/theme/material/material.less" rel="stylesheet/less" type="text/css">
+        <link href="{{ SITEURL }}/theme/material/ripples.less" rel="stylesheet/less" type="text/css">
+    {% else %}
+        <link href="{{ SITEURL }}/theme/css/material.min.css" rel="stylesheet">
+        <link href="{{ SITEURL }}/theme/css/ripples.min.css" rel="stylesheet">
+    {% endif %}
 </head>
 <body>
+<div style="display:none" id="title">{{ title() }}</div>
 
 <div class="navbar {% if BOOTSTRAP_NAVBAR_INVERSE %}navbar-inverse{% else %}navbar-default{% endif %} navbar-fixed-top" role="navigation">
     <div class="container">
@@ -125,15 +136,18 @@
                     {% endfor %}
                 {% endif %}
             </ul>
-            <ul class="nav navbar-nav navbar-right">
+            <ul class="nav navbar-right navbar-form">
             {% if 'tipue_search' in PLUGINS %}
               <li><span>
-                <form class="navbar-search" action="/search">
-                  <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input" required>
+                <form class="navbar-search" action="/search.html">
+                  <input type="text" class="search-query form-control col-lg-8" placeholder="Search" name="q" id="tipue_search_input" required>
                 </form></span>
               </li>
             {% endif %}
-              <li><a href="{{ SITEURL }}/{{ ARCHIVES_URL | default('archives.html') }}"><i class="fa fa-th-list"></i><span class="icon-label">Archives</span></a></li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+              <li><a href="{{ SITEURL }}/{{ ARCHIVES_URL | default('archives.html') }}"><i class="fa fa-th-list"></i><span class="icon-label">All</span></a></li>
+              <li><a href="{{ SITEURL }}/{{ FEED_ALL_URL | default('feeds/all.atom.xml') }}" title="Atom feeds for all articles"><i class="fa fa-rss"></i></a></li>
             </ul>
         </div>
         <!-- /.navbar-collapse -->
@@ -148,23 +162,17 @@
 <!-- End Banner -->
 <div class="container">
     <div class="row">
-        {% if not HIDE_SIDEBAR or ABOUT_ME %}
-        <div class="col-sm-9">
-        {% else %}
-        <div class="col-lg-12">
-        {% endif %}
-        {% block breadcrumbs %}
-        {% endblock %}
-
-        {% block content %}
-        {% endblock %}
+        <div class="col-lg-10 col-md-9 col-sm-8">
+            <div id="loading-block">
+            {% block breadcrumbs %}
+            {% endblock %}
+            {% block content %}
+            {% endblock %}
+            </div>
         </div>
         {% if not HIDE_SIDEBAR or ABOUT_ME %}
-        <div class="col-sm-3" id="sidebar">
+        <div class="col-lg-2 col-md-3 col-sm-4" id="sidebar">
             <aside>
-            {% if ABOUT_ME %}
-                {% include 'includes/aboutme.html' %}
-            {% endif %}
             {% if not HIDE_SIDEBAR %}
                 {% include 'includes/sidebar.html' %}
             {% endif %}
@@ -192,5 +200,162 @@
 {% include 'includes/piwik.html' %}
 
 {% block scripts %}{% endblock %}
+{% if USE_LESS %}
+<script src="{{ SITEURL }}/theme/js/less.min.js" type="text/javascript"></script>
+{% endif %}
+<script src="{{ SITEURL }}/theme/js/ripples.min.js"></script>
+<script src="{{ SITEURL }}/theme/js/material.min.js"></script>
+<script>
+    function linkto(){
+
+    }
+
+    function htmlDecode(value){
+      return $('<div/>').html(value).text();
+    }
+
+    function evalScript(data, context){
+        var re = /<script\b[^>]*>([\s\S]*?)<\/script>/gm;
+        var match;
+        while (match = re.exec(data)) {
+          // full match is in match[0], whereas captured groups are in ...[1], ...[2], etc.
+          context.append(match[0]);
+        }
+    }
+
+    $(document).ready(function() {
+        $.material.init();
+
+        function applyTranslateAnime(){
+            $(".article-content .translate").each(function(idx, obj){
+                $(obj).attr("data-href", $(obj).attr("href"));
+                $(obj).attr("href", "javascript:void(0)");
+                $(obj).click(function(){
+                    var href = $(obj).attr("data-href");
+                    $('.breadcrumb').fadeOut("slow");
+                    $('.article-content').fadeOut("slow",function(){
+                        $.get(href, function(data){
+                            var el = new DOMParser().parseFromString(data, 'text/html');
+                            var title = $("#title", el)[0].innerHTML;
+                            var content = $(".article-content", el)[0].innerHTML;
+                            var breadcrumb = $(".breadcrumb", el)[0].innerHTML;
+
+                            document.title = htmlDecode(title);
+                            window.history.pushState({
+                                "content": content ,
+                                "title":title ,
+                                "breadcrumb":breadcrumb
+                            },"", href);
+                            $('.article-content')[0].innerHTML = content;
+                            $('.breadcrumb')[0].innerHTML = breadcrumb;
+                            $('.article-content').fadeIn('slow');
+                            $('.breadcrumb').fadeIn('slow');
+                            $("#comments script", el).each(function(idx, obj){
+                                // re-enable disqus
+                                eval(obj.innerHTML);
+                            });
+                            applyTranslateAnime();
+                        }).fail(function(){
+                            // failback to changing url
+                            window.location.href = href ;
+                        });
+                    });
+                });
+            });
+        };
+        applyTranslateAnime();
+
+        window.onpopstate = function(e){
+            if(e.state){
+                
+                document.title = htmlDecode(e.state.title);
+                $('.breadcrumb').fadeOut("slow");
+                $('.article-content').fadeOut("slow",function(){
+                    $('.article-content')[0].innerHTML = e.state.content;
+                    $('.breadcrumb')[0].innerHTML = e.state.breadcrumb;
+                    $('.article-content').fadeIn('slow');
+                    $('.breadcrumb').fadeIn('slow');
+                    $("#comments script").each(function(idx, obj){
+                        // re-enable disqus
+                        eval(obj.innerHTML);
+                    });
+                    applyTranslateAnime();
+                });
+            }
+        }
+        
+        
+
+        // if (typeof String.prototype.startsWith != 'function') {
+        //   // see below for better implementation!
+        //   String.prototype.startsWith = function (str){
+        //     return this.indexOf(str) == 0;
+        //   };
+        // }
+        // if (typeof String.prototype.endsWith != 'function') {
+        //     String.prototype.endsWith = function(suffix) {
+        //         return this.indexOf(suffix, this.length - suffix.length) !== -1;
+        //     };
+        // }
+        // function applyAjaxAnime(){
+            
+        //     function applyAjaxAnimeOn(idx, obj){
+        //         var href = $(obj).attr("href");
+        //         if(href.startsWith("java") || 
+        //             href.startsWith("http")||
+        //             ! href.endsWith(".html")){
+        //             return;
+        //         }
+
+        //         $(obj).attr("data-href", $(obj).attr("href"));
+        //         $(obj).attr("href", "javascript: linkto('" + href+"')");
+        //         $(obj).click(function(){
+        //             var href = $(obj).attr("data-href");
+        //             $('#loading-block').fadeOut("slow",function(){
+        //                 $.get(href, function(data){
+        //                     var el = new DOMParser().parseFromString(data, 'text/html');
+
+        //                     var title = $("#title", el)[0].innerHTML;
+        //                     var content = $("#loading-block", el)[0].innerHTML;
+                            
+        //                     document.title = htmlDecode(title);
+        //                     window.history.pushState({
+        //                         "content": content ,
+        //                         "title":title,
+        //                         "data":data
+        //                     },"", href);
+        //                     $('#loading-block')[0].innerHTML = content;
+        //                     $('#loading-block').fadeIn('slow');
+
+        //                     evalScript(data, $('#loading-block'));
+        //                     applyAjaxAnime();
+        //                 }).fail(function(){
+        //                     // failback to changing url
+        //                     window.location.href = href ;
+        //                 });
+        //             });
+        //         });
+        //     }
+
+        //     $("a").each(applyAjaxAnimeOn);
+        // };
+        // applyAjaxAnime();
+
+        // window.onpopstate = function(e){
+        //     if(e.state){
+                
+        //         document.title = htmlDecode(title);
+        //         $('#loading-block').fadeOut("slow",function(){
+        //             $('#loading-block')[0].innerHTML = e.state.content;
+        //             $('#loading-block').fadeIn('slow');
+        //             evalScript(e.state.data, $('#loading-block'));
+        //             applyAjaxAnime();
+        //         });
+        //     }
+        // }
+        
+    });
+</script>
+
 </body>
 </html>

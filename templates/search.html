@@ -10,7 +10,7 @@ Search - {{ super() }}
     {% else %}
     <link href="{{ SITEURL }}/theme/tipuesearch/tipuesearch.css" rel="stylesheet">
     <script type="text/javascript" src="{{ SITEURL }}/theme/tipuesearch/tipuesearch_set.js"></script>
-    <script type="text/javascript" src="{{ SITEURL }}/theme/tipuesearch/tipuesearch.min.js"></script>
+    <script type="text/javascript" src="{{ SITEURL }}/theme/tipuesearch/tipuesearch.js"></script>
     {% endif %}
     <script>
     $(document).ready(function() {
@@ -25,5 +25,7 @@ Search - {{ super() }}
 {% endblock %}
 
 {% block content %}
+<section id="content">
 <div id="tipue_search_content"></div>
+</section>
 {% endblock %}
