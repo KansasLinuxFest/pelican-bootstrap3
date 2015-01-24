@@ -66,7 +66,13 @@
         {% endif %}
     {% endif %}
 {% endblock %}
-
+{% if article.toc %}
+    <nav class="toc">
+    {{ article.toc }}
+    </nav>
+    {% else %}
+NOTOC
+{% endif %}
 {% block content %}
     <section id="content" class="article-content">
         <article>
